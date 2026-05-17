@@ -155,7 +155,8 @@ server.tool({
   schema: z.object({ message: z.string().optional().default("hello").describe("আপনার প্রশ্ন") }),
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 }, async ({ message }) => {
-  return text(await askLlama([{ role: "user", content: message }]));
+  const safeMessage = message?.toString().trim() || "hello";
+  return text(await askLlama([{ role: "user", content: safeMessage }]));
 });
 
 server.tool({
@@ -167,7 +168,9 @@ server.tool({
   }),
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 }, async ({ history, message }) => {
-  return text(await askLlama([...history.slice(-10), { role: "user", content: message }]));
+  const safeMessage = message?.toString().trim() || "hello";
+  const safeHistory = history ?? [];
+  return text(await askLlama([...safeHistory.slice(-10), { role: "user", content: safeMessage }]));
 });
 
 // ===== FILE SYSTEM TOOLS =====
