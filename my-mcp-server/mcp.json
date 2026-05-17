@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "zombie-coder": {
+      "command": "npx",
+      "args": ["tsx", "/home/sahon/dev/llama_cpp/my-mcp-server/index.ts"],
+      "env": {
+        "LLAMA_HOST": "http://localhost:15000",
+        "LLAMA_MODEL": "Llama-3.2-1B-Instruct-UD-Q5_K_XL.gguf"
+      }
+    }
+  }
+}

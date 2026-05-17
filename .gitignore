@@ -1,0 +1,20 @@
+# Local environment and secrets
+.env
+.env.local
+.env.*
+
+# Runtime files
+logs/
+*.log
+*.pid
+*.sock
+
+# Large binaries and model data
+bin/
+models/
+
+# Editor and OS files
+.vscode/
+.zed/
+.DS_Store
+Thumbs.db
