@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const LOCAL_MCP = 'http://127.0.0.1:3000/mcp';
+const LOCAL_MCP = process.env.MCP_URL || 'http://127.0.0.1:3001/mcp';
 
 async function rpcCall(id, method, params) {
   const payload = { jsonrpc: '2.0', id, method, params };
@@ -18,6 +18,15 @@ async function rpcCall(id, method, params) {
   }
 }
 
+async function httpGet(path) {
+  const res = await fetch(`http://127.0.0.1:3000${path}`, { method: 'GET' });
+  return {
+    status: res.status,
+    headers: Object.fromEntries(res.headers.entries()),
+    body: await res.text(),
+  };
+}
+
 async function main() {
   console.log('Local MCP host:', LOCAL_MCP);
 
@@ -29,6 +38,9 @@ async function main() {
 
   console.log('\n3) chat with empty payload');
   console.log(JSON.stringify(await rpcCall('test-chat', 'tools/call', { name: 'chat', arguments: {} }), null, 2));
+
+  console.log('\n4) GET /identity');
+  console.log(JSON.stringify(await httpGet('/identity'), null, 2));
 }
 
 main().catch((err) => {

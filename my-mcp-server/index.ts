@@ -127,6 +127,21 @@ function sessionSummary() {
     timestamp: new Date().toISOString(),
   };
 }
+
+server.app.use(async (c: any, next: any) => {
+  c.header("X-Agent-Identity", "ZombieCoder Dev Agent");
+  c.header("X-Agent-Ethics", "Local-First; Honest; Non-authoritative; No Unauthorized Changes");
+  return await next();
+});
+
+server.app.get("/identity", (c: any) => {
+  const identityPath = join(WORKSPACE, "identity.json");
+  const identity = existsSync(identityPath)
+    ? JSON.parse(readFileSync(identityPath, "utf-8"))
+    : { name: "ZombieCoder Dev Agent", tagline: "যেখানে কোড ও কথা বলে" };
+  return c.json(identity);
+});
+
 server.app.get("/status", (c: any) => c.html(monitor.htmlDashboard(getSessions())));
 server.app.get("/status.json", (c: any) => c.json(sessionSummary()));
 
@@ -134,19 +149,33 @@ server.app.get("/status.json", (c: any) => c.json(sessionSummary()));
 async function askLlama(messages: { role: string; content: string }[]) {
   const systemPromptPath = join(WORKSPACE, "system_prompt.txt");
   const system = existsSync(systemPromptPath) ? readFileSync(systemPromptPath, "utf-8") : "You are a helpful AI assistant.";
-  const res = await fetch("http://localhost:15000/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "Llama-3.2-1B-Instruct-UD-Q5_K_XL.gguf",
-      messages: [{ role: "system", content: system }, ...messages],
-      temperature: 0.7,
-      max_tokens: 2048,
-    }),
-  });
-  if (!res.ok) throw new Error(`llama.cpp error: ${await res.text()}`);
-  const data: any = await res.json();
-  return data.choices?.[0]?.message?.content || "(no response)";
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch("http://localhost:15000/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "Llama-3.2-1B-Instruct-UD-Q5_K_XL.gguf",
+        messages: [{ role: "system", content: system }, ...messages],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      const payload = await res.text();
+      return `llama.cpp error: ${payload}`;
+    }
+    const data: any = await res.json();
+    return data.choices?.[0]?.message?.content || "(no response)";
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      return "llama.cpp backend unavailable: request timed out after 5 seconds.";
+    }
+    return `llama.cpp backend unavailable: ${error?.message ?? error}`;
+  }
 }
 
 server.tool({
